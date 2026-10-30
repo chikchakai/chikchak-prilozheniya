@@ -19,7 +19,7 @@
   /* выход: тёплый фон витрины раскрывается кругом из хинкали — переход в меню без вспышки */
   #vyhod { position: fixed; inset: 0; background: linear-gradient(180deg, #FFEFD6 0%, #FFD9B0 100%);
            clip-path: circle(0 at 50% 30%); }
-  #net { position: fixed; left: 0; right: 0; top: calc(44% + min(84vw, 440px) * 0.47); text-align: center;
+  #net { position: fixed; left: 0; right: 0; top: min(calc(44% + min(84vw, 440px) * 0.47), calc(100% - 120px)); text-align: center;
          color: var(--krem); font: 16px/1.4 system-ui, sans-serif; display: none; padding: 0 24px; }
   #net button { margin-top: 14px; padding: 13px 26px; border: 0; border-radius: 14px; background: #FFB03A;
                 color: var(--ugol); font: 600 16px system-ui, sans-serif; transition: transform .16s linear(0, .6 18%, 1.006 50%, 1); }
@@ -111,6 +111,7 @@ function blyudo(b, t, min) {
 }
 
 function risovat(c, b, v) {
+  if (!b.img.complete || !b.img.naturalWidth) return;  // битая картинка не должна ронять кадр
   c.save(); c.globalAlpha = v.a; c.translate(v.x, v.y); c.rotate(v.rot);
   c.drawImage(b.img, -v.s / 2, -v.s / 2, v.s, v.s); c.restore();
 }
@@ -155,7 +156,7 @@ function kadr(t, tVyhod = Infinity) {
   // круг — та же тяжёлая пружина на четверть медленнее: экран целиком, большой поверхности нужна масса
   const kr = Math.hypot(Math.max(kx, W - kx), Math.max(ky, H - ky)) * 1.02 * spring((t - tVyhod) * 0.75, ...PR.tyazhelaya);
   $('vyhod').style.clipPath = `circle(${kr.toFixed(1)}px at ${kx.toFixed(1)}px ${ky.toFixed(1)}px)`;
-  return kr >= Math.hypot(Math.max(kx, W - kx), Math.max(ky, H - ky));  // экран закрыт — можно уходить
+  return isFinite(tVyhod) && kr >= Math.hypot(Math.max(kx, W - kx), Math.max(ky, H - ky));  // экран закрыт — можно уходить
 }
 
 // Сеть: проверяем, что витрина отвечает, пока идёт заставка; заодно прогреваем соединение.
@@ -165,12 +166,17 @@ function proverit() {
 }
 
 const parametry = new URLSearchParams(location.search);
-const gotovo = Promise.all([...document.images, ...blyuda.map((b) => b.img)].map((i) => i.decode().catch(() => {})));
+// не дольше 1,5 с: зависший decode не должен держать системную заставку вечно
+const gotovo = Promise.race([Promise.all([...document.images, ...blyuda.map((b) => b.img)].map((i) => i.decode().catch(() => {}))),
+  new Promise((r) => setTimeout(r, 1500))]);
+function skryt() {
+  try { window.Capacitor.Plugins.SplashScreen.hide({ fadeOutDuration: 0 }).catch(() => {}); } catch (e) { /* не в приложении */ }
+}
 razmer();
 addEventListener('resize', razmer);
 
 if (parametry.has('t')) {
-  gotovo.then(() => { const v = parametry.get('vyhod'); kadr(Number(parametry.get('t')), v === null ? Infinity : Number(v)); document.body.dataset.kadr = '1'; });
+  gotovo.then(() => { skryt(); const v = parametry.get('vyhod'); kadr(Number(parametry.get('t')), v === null ? Infinity : Number(v)); document.body.dataset.kadr = '1'; });
 } else {
   const tiho = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let t0 = 0, tVyhod = Infinity, ushli = false;
@@ -185,14 +191,20 @@ if (parametry.has('t')) {
     $('net').style.display = 'none';
     proverit().then((ok) => { if (ok) tVyhod = (performance.now() - t0) / 1000; else $('net').style.display = 'block'; });
   };
+  addEventListener('online', () => { if ($('net').style.display === 'block') $('net').querySelector('button').click(); });
   gotovo.then(() => {
     t0 = performance.now();
-    if (window.Capacitor && Capacitor.Plugins.SplashScreen) Capacitor.Plugins.SplashScreen.hide({ fadeOutDuration: 0 });
+    skryt();
     zapusk();
     (function shag() {
-      const t = tiho ? 3 : (performance.now() - t0) / 1000;  // без движения — сразу итоговый кадр
-      const zakryto = kadr(t, tiho ? Math.min(tVyhod, t) : tVyhod);
-      if (zakryto && !ushli) { ushli = true; location.replace(ADRES); return; }
+      try {
+        // без движения — сразу итоговый кадр, а уход — мгновенно, как только сеть ответила
+        const t = tiho ? (tVyhod === Infinity ? 3 : Math.max(3, tVyhod + 1)) : (performance.now() - t0) / 1000;
+        if (kadr(t, tVyhod) && !ushli) { ushli = true; location.replace(ADRES); return; }
+      } catch (e) {
+        if (!ushli) { ushli = true; location.replace(ADRES); }  // сломалась заставка — меню важнее
+        return;
+      }
       requestAnimationFrame(shag);
     })();
   });

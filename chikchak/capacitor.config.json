@@ -7,9 +7,19 @@
   "server": {
     "url": "https://panel.chikchak.ai/",
     "errorPath": "oshibka.html",
-    "allowNavigation": ["*"]
+    "allowNavigation": [
+      "panel.chikchak.ai",
+      "api.chikchak.ai",
+      "chikchak.ai",
+      "yookassa.ru",
+      "*.yookassa.ru",
+      "yoomoney.ru",
+      "*.yoomoney.ru"
+    ]
   },
   "plugins": {
-    "SystemBars": { "insetsHandling": "css" }
+    "SystemBars": {
+      "insetsHandling": "css"
+    }
   }
 }

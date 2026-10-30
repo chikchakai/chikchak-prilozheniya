@@ -6,10 +6,26 @@
   "appendUserAgent": "ChikChakApp",
   "server": {
     "errorPath": "oshibka.html",
-    "allowNavigation": ["hinkali.chikchak.ai", "client.chikchak.ai", "hinkali.city", "*"]
+    "allowNavigation": [
+      "hinkali.chikchak.ai",
+      "client.chikchak.ai",
+      "hinkali.city",
+      "*.hinkali.city",
+      "yookassa.ru",
+      "*.yookassa.ru",
+      "yoomoney.ru",
+      "*.yoomoney.ru"
+    ]
   },
   "plugins": {
-    "SystemBars": { "insetsHandling": "css", "initialViewportFitValueHint": "cover" },
-    "SplashScreen": { "launchAutoHide": false, "backgroundColor": "#231A14", "showSpinner": false }
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    },
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#231A14",
+      "showSpinner": false
+    }
   }
 }
