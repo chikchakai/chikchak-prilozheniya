@@ -12,8 +12,11 @@ import sys
 from PIL import Image, ImageDraw
 from playwright.sync_api import sync_playwright
 
-KREM, TESTO, UGOL, SHAFRAN = "#FFF7EC", "#E9D3AE", "#231A14", "#FFB03A"
+# Логотип только чёрный, как в оригинале (владелец 30.10): линии и «City» чёрные, хинкали внутри белое.
+KREM, TESTO, UGOL, SHAFRAN = "#141416", "#FFFFFF", "#141416", "#141416"
+STAL, STAL_SVET = "#D3D6D9", "#ECEEF0"  # светлая сталь, как светлая тема кассы
 OKNO = (30, 100, 970, 850)          # рамка кадра в координатах вектора (1000 x 1000, y вниз)
+CITY = (336, 674)                   # левый верх «City»: в уголке рамки под «ин», ниже «кал» проходит край рамки
 MASHTAB = 1.4                        # px на единицу вектора
 PAPKA = pathlib.Path("hinkali/www/zastavka")
 FOTO = pathlib.Path("C:/resto-testing/vitrina_hinkalnaya/v2/foto")
@@ -64,11 +67,11 @@ with sync_playwright() as p:
     for imya, s in SLOI.items():
         pg.set_content(f'<body style="margin:0;background:transparent">{s}</body>')
         pg.screenshot(path=str(PAPKA / f"{imya}.png"), omit_background=True)
-    # «City» — как на иконке: под «кальная», акцентным цветом
-    pg.set_content('<html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marck+Script&display=block"></head>'
+    # «City» — как на старой иконке: кистевой курсив под «кал»
+    pg.set_content('<html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaushan+Script&display=block"></head>'
                    f'<body style="margin:0;background:transparent"><div id="c" style="display:inline-block;padding:0 8px;'
-                   f'font:{round(84 * MASHTAB)}px \'Marck Script\';color:{SHAFRAN};line-height:1.1">City</div></body></html>')
-    pg.wait_for_function("document.fonts.ready.then(() => document.fonts.check(\"40px 'Marck Script'\"))")
+                   f'font:{round(54 * MASHTAB)}px \'Kaushan Script\';color:{SHAFRAN};line-height:1.15">City</div></body></html>')
+    pg.wait_for_function("document.fonts.ready.then(() => document.fonts.check(\"40px 'Kaushan Script'\"))")
     pg.locator("#c").screenshot(path=str(PAPKA / "city.png"), omit_background=True)
     b.close()
 
@@ -100,13 +103,17 @@ print("ok", W, H, "city", city.size)
 
 # Иконка приложения: тот же логотип на угле, что и в заставке (1024 — для значка, 512 — для карточки магазина).
 def ikonka(storona, dolya):
-    holst = Image.new("RGBA", (storona, storona), UGOL)
+    holst = Image.new("RGBA", (storona, storona), STAL)
     fon = Image.radial_gradient("L").resize((storona, storona))  # 0 в центре, 255 к краям
-    holst.paste(Image.new("RGBA", holst.size, "#3B2A1E"), (0, 0), fon.point(lambda v: 255 - v))
+    holst.paste(Image.new("RGBA", holst.size, STAL_SVET), (0, 0), fon.point(lambda v: 255 - v))
+    # шлифовка: шум, вытянутый по горизонтали
+    shum = Image.effect_noise((max(1, storona // 16), storona), 40).resize((storona, storona), Image.BILINEAR)
+    holst.paste(Image.new("RGBA", holst.size, "#FFFFFF"), (0, 0), shum.point(lambda v: max(0, v - 128) // 3))
+    holst.paste(Image.new("RGBA", holst.size, "#8A9096"), (0, 0), shum.point(lambda v: max(0, 128 - v) // 4))
     logo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     for imya in ("ramka", "vilka", "nozh", "tekst", "hinkali"):
         logo.alpha_composite(Image.open(PAPKA / f"{imya}.png"))
-    logo.alpha_composite(city, (round((585 - x0) * MASHTAB), round((668 - y0) * MASHTAB)))
+    logo.alpha_composite(city, (round((CITY[0] - x0) * MASHTAB), round((CITY[1] - y0) * MASHTAB)))
     w = round(storona * dolya); h = round(w * H / W)
     holst.alpha_composite(logo.resize((w, h), Image.LANCZOS), ((storona - w) // 2, (storona - h) // 2))
     return holst

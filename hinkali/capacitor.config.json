@@ -24,7 +24,7 @@
     },
     "SplashScreen": {
       "launchAutoHide": false,
-      "backgroundColor": "#231A14",
+      "backgroundColor": "#D3D6D9",
       "showSpinner": false
     }
   }

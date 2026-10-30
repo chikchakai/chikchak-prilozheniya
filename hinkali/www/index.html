@@ -7,22 +7,25 @@
 <link rel="preconnect" href="https://hinkali.chikchak.ai">
 <link rel="preconnect" href="https://api.chikchak.ai">
 <style>
-  :root { --ugol: #231A14; --krem: #FFF7EC; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ugol); }
-  body { background: radial-gradient(120% 80% at 50% 44%, #3B2A1E 0%, #231A14 45%, #120C08 100%); }
+  /* светлая шлифованная сталь, как светлая тема кассы ChikChak; логотип чёрный, как в оригинале */
+  :root { --stal: #D3D6D9; --chernila: #141416; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--stal); }
+  body { background-image: linear-gradient(118deg, rgb(0 0 0/.06) 0%, rgb(255 255 255/.5) 34%, rgb(0 0 0/.05) 52%, rgb(255 255 255/.3) 70%, rgb(0 0 0/.09) 100%),
+    radial-gradient(120% 80% at 50% 44%, #EEF0F2 0%, #D3D6D9 55%, #B9BEC3 100%), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.003 0.85' numOctaves='3' seed='7'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.5 0 0 0 -0.23'/></filter><rect width='100%' height='100%' filter='url(%23f)'/></svg>");
+    background-size: 100% 100%, 100% 100%, 600px 600px; }
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
   #logo { position: fixed; left: 50%; top: 44%; width: min(84vw, 440px); aspect-ratio: 1316 / 1050;
           transform: translate(-50%, -50%); will-change: transform, opacity; }
   #logo img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; will-change: transform, opacity; opacity: 0; }
-  #logo #city { left: 59.04%; top: 75.73%; width: 16.1%; height: auto; transform-origin: 30% 60%; }
+  #logo #city { left: 32.55%; top: 76.53%; width: 10.87%; height: auto; transform-origin: 30% 60%; }
   #hinkali { transform-origin: 57.1% 30.1%; }
   /* выход: тёплый фон витрины раскрывается кругом из хинкали — переход в меню без вспышки */
   #vyhod { position: fixed; inset: 0; background: linear-gradient(180deg, #FFEFD6 0%, #FFD9B0 100%);
            clip-path: circle(0 at 50% 30%); }
   #net { position: fixed; left: 0; right: 0; top: min(calc(44% + min(84vw, 440px) * 0.47), calc(100% - 120px)); text-align: center;
-         color: var(--krem); font: 16px/1.4 system-ui, sans-serif; display: none; padding: 0 24px; }
-  #net button { margin-top: 14px; padding: 13px 26px; border: 0; border-radius: 14px; background: #FFB03A;
-                color: var(--ugol); font: 600 16px system-ui, sans-serif; transition: transform .16s linear(0, .6 18%, 1.006 50%, 1); }
+         color: var(--chernila); font: 16px/1.4 system-ui, sans-serif; display: none; padding: 0 24px; }
+  #net button { margin-top: 14px; padding: 13px 26px; border: 0; border-radius: 14px; background: var(--chernila);
+                color: #FFFFFF; font: 600 16px system-ui, sans-serif; transition: transform .16s linear(0, .6 18%, 1.006 50%, 1); }
   #net button:active { transform: scale(.97); }
 </style>
 </head>
@@ -92,7 +95,7 @@ function luchi(c, t, tVyhod) {
     const u = (l.faza + s * l.skorost) % 1, r = 18 + u * u * R, dl = 10 + u * u * R * 0.22;
     const a = 0.26 * Math.sin(Math.PI * u) * gasnut;
     if (a < 0.01) continue;
-    c.strokeStyle = `rgba(255, 233, 196, ${a.toFixed(3)})`; c.lineWidth = l.tolshchina * (0.5 + u);
+    c.strokeStyle = `rgba(40, 44, 50, ${(a * 0.6).toFixed(3)})`;  // тёмные штрихи по светлой стали c.lineWidth = l.tolshchina * (0.5 + u);
     c.beginPath();
     c.moveTo(cx + Math.cos(l.ugol) * r, cy + Math.sin(l.ugol) * r);
     c.lineTo(cx + Math.cos(l.ugol) * (r + dl), cy + Math.sin(l.ugol) * (r + dl));
