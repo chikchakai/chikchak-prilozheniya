@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      adres:
+        description: "Test build: open this address instead of the one in capacitor.config.json"
+        default: ""
 
 jobs:
   sborka:
@@ -25,6 +29,11 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci
+      - name: Test address
+        if: inputs.adres != ''
+        env:
+          ADRES: ${{ inputs.adres }}
+        run: node -e "const f='capacitor.config.json',c=require('./'+f);c.server.url=process.env.ADRES;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
       - run: npx cap sync android
       - name: Upload key
         env:
@@ -39,7 +48,7 @@ jobs:
         run: chmod +x gradlew && ./gradlew --no-daemon bundleRelease assembleRelease
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.app }}-${{ github.run_number }}
+          name: ${{ matrix.app }}-${{ github.run_number }}${{ inputs.adres != '' && '-proba' || '' }}
           path: |
             ${{ matrix.app }}/android/app/build/outputs/bundle/release/*.aab
             ${{ matrix.app }}/android/app/build/outputs/apk/release/*.apk
