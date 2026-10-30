@@ -4,18 +4,199 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Хинкальная</title>
+<link rel="preconnect" href="https://hinkali.chikchak.ai">
+<link rel="preconnect" href="https://api.chikchak.ai">
 <style>
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #FFF7EC; color: #2A1E14;
-         font: 17px/1.4 system-ui, sans-serif; text-align: center; padding: 24px; box-sizing: border-box; }
-  button { margin-top: 20px; padding: 14px 28px; border: 0; border-radius: 14px; background: #FFB03A; color: #2A1E14;
-           font: inherit; font-weight: 600; }
+  :root { --ugol: #231A14; --krem: #FFF7EC; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ugol); }
+  body { background: radial-gradient(120% 80% at 50% 44%, #3B2A1E 0%, #231A14 45%, #120C08 100%); }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #logo { position: fixed; left: 50%; top: 44%; width: min(84vw, 440px); aspect-ratio: 1316 / 1050;
+          transform: translate(-50%, -50%); will-change: transform, opacity; }
+  #logo img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; will-change: transform, opacity; opacity: 0; }
+  #logo #city { left: 59.04%; top: 75.73%; width: 16.1%; height: auto; transform-origin: 30% 60%; }
+  #hinkali { transform-origin: 57.1% 30.1%; }
+  /* выход: тёплый фон витрины раскрывается кругом из хинкали — переход в меню без вспышки */
+  #vyhod { position: fixed; inset: 0; background: linear-gradient(180deg, #FFEFD6 0%, #FFD9B0 100%);
+           clip-path: circle(0 at 50% 30%); }
+  #net { position: fixed; left: 0; right: 0; top: calc(44% + min(84vw, 440px) * 0.47); text-align: center;
+         color: var(--krem); font: 16px/1.4 system-ui, sans-serif; display: none; padding: 0 24px; }
+  #net button { margin-top: 14px; padding: 13px 26px; border: 0; border-radius: 14px; background: #FFB03A;
+                color: var(--ugol); font: 600 16px system-ui, sans-serif; transition: transform .16s linear(0, .6 18%, 1.006 50%, 1); }
+  #net button:active { transform: scale(.97); }
 </style>
 </head>
 <body>
-  <div>
-    <p><b>Нет связи</b></p>
-    <p>Проверьте интернет и попробуйте ещё раз.</p>
-    <button onclick="location.href='https://hinkali.chikchak.ai/'">Повторить</button>
-  </div>
+<canvas id="zad"></canvas>
+<div id="logo">
+  <img id="ramka" src="zastavka/ramka.png" alt="">
+  <img id="vilka" src="zastavka/vilka.png" alt="">
+  <img id="nozh" src="zastavka/nozh.png" alt="">
+  <img id="tekst" src="zastavka/tekst.png" alt="">
+  <img id="hinkali" src="zastavka/hinkali.png" alt="Хинкальная City">
+  <img id="city" src="zastavka/city.png" alt="">
+</div>
+<canvas id="pered"></canvas>
+<div id="vyhod"></div>
+<div id="net"><div>Нет связи с интернетом</div><button type="button">Повторить</button></div>
+<script>
+'use strict';
+// Заставка приложения «Хинкальная» (30.10.2026): блюда вылетают из глубины навстречу, собирается логотип,
+// тёплый фон витрины раскрывается кругом — и открывается меню. Кадр — чистая функция времени kadr(t):
+// ?t=1.2 рисует один кадр и никуда не уходит (съёмка кадров для проверки).
+const ADRES = 'https://hinkali.chikchak.ai/';
+const PR = { rezkaya: [819, 48], obychnaya: [435, 36], tyazhelaya: [230, 42], vyazkaya: [358, 35], igrivaya: [538, 26] };
+function spring(t, k, d) {  // design/motion.js
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(k), z = d / (2 * w0);
+  if (z < 1) { const wd = w0 * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + ((z * w0) / wd) * Math.sin(wd * t)); }
+  return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+}
+function rng(seed) {  // design/motion.js: Math.random в кадре запрещён
+  return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const p = (t, t0, imya) => spring(t - t0, ...PR[imya]);
+const zazhat = (x) => Math.min(1, Math.max(0, x));
+const poyavlenie = (t, t0) => zazhat((t - t0) / 0.08);  // вход вместе с движением, не вместо него
+
+const BLYUDA = ['megrel', 'shashlyk', 'harcho', 'adzhar', 'tarhun', 'phali', 'odzhahuri', 'hinkali'];
+const UGLY = [205, 335, 95, 25, 150, 270, 300, 115];  // направления вылета, соседние — в разные стороны
+const sl = rng(20261030);
+const blyuda = BLYUDA.map((imya, i) => {
+  const img = new Image(); img.src = `zastavka/${imya}.webp`;
+  return { img, ugol: UGLY[i] * Math.PI / 180, start: i * 0.075, povorot: (sl() - 0.5) * 0.9, kruchenie: (sl() - 0.5) * 0.6 };
+});
+const LUCHI = Array.from({ length: 96 }, () => ({ ugol: sl() * Math.PI * 2, faza: sl(), skorost: 0.55 + sl() * 0.6, tolshchina: 0.6 + sl() * 1.4 }));
+
+const zad = document.getElementById('zad'), pered = document.getElementById('pered');
+const cz = zad.getContext('2d'), cp = pered.getContext('2d');
+const $ = (id) => document.getElementById(id);
+const sloi = { ramka: $('ramka'), vilka: $('vilka'), nozh: $('nozh'), tekst: $('tekst'), hinkali: $('hinkali'), city: $('city') };
+let W = 0, H = 0, dpr = 1;
+function razmer() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5); W = innerWidth; H = innerHeight;
+  for (const c of [zad, pered]) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+}
+
+// Путь лучей: скорость 1, после сборки логотипа плавно спадает до 0,35 — ждём сеть спокойнее.
+function put(t) {
+  const T = 1.45, tau = 0.3;
+  return t <= T ? t : t - 0.65 * ((t - T) + tau * Math.exp(-(t - T) / tau) - tau);
+}
+
+function luchi(c, t, tVyhod) {
+  const cx = W / 2, cy = H * 0.44, R = Math.hypot(W, H) * 0.62, s = put(t);
+  const gasnut = zazhat(1 - (t - tVyhod) / 0.3) * zazhat(t / 0.25);
+  for (const l of LUCHI) {
+    const u = (l.faza + s * l.skorost) % 1, r = 18 + u * u * R, dl = 10 + u * u * R * 0.22;
+    const a = 0.26 * Math.sin(Math.PI * u) * gasnut;
+    if (a < 0.01) continue;
+    c.strokeStyle = `rgba(255, 233, 196, ${a.toFixed(3)})`; c.lineWidth = l.tolshchina * (0.5 + u);
+    c.beginPath();
+    c.moveTo(cx + Math.cos(l.ugol) * r, cy + Math.sin(l.ugol) * r);
+    c.lineTo(cx + Math.cos(l.ugol) * (r + dl), cy + Math.sin(l.ugol) * (r + dl));
+    c.stroke();
+  }
+}
+
+// Блюдо летит из глубины: z от 2,6 до 0,22 с постоянной скоростью — перспектива сама даёт разгон.
+function blyudo(b, t, min) {
+  const D = 0.78, u = (t - b.start) / D;
+  if (u < 0 || u > 1) return null;
+  const z = 2.6 - u * (2.6 - 0.22), cx = W / 2, cy = H * 0.44;
+  const r = min * (0.08 + 0.3 / z), s = (min * 0.3) / z;
+  // у края гаснет: крупное блюдо не должно пропасть скачком, если не успело выйти за экран
+  return { z, x: cx + Math.cos(b.ugol) * r, y: cy + Math.sin(b.ugol) * r, s, a: zazhat((2.6 - z) / 0.5) * zazhat((z - 0.22) / 0.2), rot: b.povorot + b.kruchenie / z };
+}
+
+function risovat(c, b, v) {
+  c.save(); c.globalAlpha = v.a; c.translate(v.x, v.y); c.rotate(v.rot);
+  c.drawImage(b.img, -v.s / 2, -v.s / 2, v.s, v.s); c.restore();
+}
+
+function kadr(t, tVyhod = Infinity) {
+  const min = Math.min(W, H);
+  for (const c of [cz, cp]) { c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); }
+  luchi(cz, t, tVyhod);
+  const v = blyuda.map((b) => [b, blyudo(b, t, min)]).filter((x) => x[1]).sort((a, b) => b[1].z - a[1].z);
+  for (const [b, x] of v) risovat(x.z >= 1 ? cz : cp, b, x);  // ближе плоскости логотипа — поверх него
+
+  // Логотип по частям: рамка прорисовывается по кругу, хинкали падает, приборы съезжаются, надпись пишется.
+  const rm = p(t, 0.55, 'tyazhelaya');
+  sloi.ramka.style.opacity = poyavlenie(t, 0.55);
+  sloi.ramka.style.transform = `scale(${1.08 - 0.08 * rm}) rotate(${-5 + 5 * rm}deg)`;
+  const ugol = 372 * rm;
+  sloi.ramka.style.webkitMaskImage = sloi.ramka.style.maskImage =
+    `conic-gradient(from 25deg at 42.6% 49.3%, #000 ${ugol}deg, transparent ${ugol + 12}deg)`;
+  const hk = p(t, 0.85, 'igrivaya');
+  sloi.hinkali.style.opacity = poyavlenie(t, 0.85);
+  sloi.hinkali.style.transform = `translateY(${-38 * (1 - hk)}%) scale(${0.55 + 0.45 * hk})`;
+  const vl = p(t, 1.0, 'obychnaya'), nz = p(t, 1.06, 'obychnaya');
+  sloi.vilka.style.opacity = poyavlenie(t, 1.0);
+  sloi.vilka.style.transform = `translateX(${42 * (1 - vl)}%)`;
+  sloi.nozh.style.opacity = poyavlenie(t, 1.06);
+  sloi.nozh.style.transform = `translateX(${-42 * (1 - nz)}%)`;
+  const tk = p(t, 1.12, 'vyazkaya');
+  sloi.tekst.style.opacity = poyavlenie(t, 1.12);
+  sloi.tekst.style.clipPath = `inset(0 ${(100 * (1 - tk)).toFixed(2)}% 0 0)`;
+  sloi.tekst.style.transform = `translateX(${-3 * (1 - tk)}%)`;
+  const ct = p(t, 1.42, 'igrivaya');
+  sloi.city.style.opacity = poyavlenie(t, 1.42);
+  sloi.city.style.transform = `scale(${0.6 + 0.4 * ct}) rotate(${-8 * (1 - ct)}deg)`;
+
+  // Выход: логотип отступает, фон витрины раскрывается из хинкали.
+  const vy = p(t, tVyhod, 'tyazhelaya');
+  const logo = $('logo');
+  logo.style.transform = `translate(-50%, ${-50 - 4 * vy}%) scale(${1 - 0.1 * vy})`;
+  logo.style.opacity = zazhat(1 - (t - tVyhod - 0.12) / 0.2);
+  const box = logo.getBoundingClientRect();
+  const kx = box.left + box.width * 0.571, ky = box.top + box.height * 0.301;
+  // круг — та же тяжёлая пружина на четверть медленнее: экран целиком, большой поверхности нужна масса
+  const kr = Math.hypot(Math.max(kx, W - kx), Math.max(ky, H - ky)) * 1.02 * spring((t - tVyhod) * 0.75, ...PR.tyazhelaya);
+  $('vyhod').style.clipPath = `circle(${kr.toFixed(1)}px at ${kx.toFixed(1)}px ${ky.toFixed(1)}px)`;
+  return kr >= Math.hypot(Math.max(kx, W - kx), Math.max(ky, H - ky));  // экран закрыт — можно уходить
+}
+
+// Сеть: проверяем, что витрина отвечает, пока идёт заставка; заодно прогреваем соединение.
+function proverit() {
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 10000);
+  return fetch(ADRES, { mode: 'no-cors', cache: 'no-store', signal: ac.signal }).then(() => true, () => false).finally(() => clearTimeout(tm));
+}
+
+const parametry = new URLSearchParams(location.search);
+const gotovo = Promise.all([...document.images, ...blyuda.map((b) => b.img)].map((i) => i.decode().catch(() => {})));
+razmer();
+addEventListener('resize', razmer);
+
+if (parametry.has('t')) {
+  gotovo.then(() => { const v = parametry.get('vyhod'); kadr(Number(parametry.get('t')), v === null ? Infinity : Number(v)); document.body.dataset.kadr = '1'; });
+} else {
+  const tiho = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let t0 = 0, tVyhod = Infinity, ushli = false;
+  const set = proverit();
+  function zapusk() {
+    set.then((ok) => {
+      if (ok) { tVyhod = Math.max(tiho ? 0 : 1.95, (performance.now() - t0) / 1000); return; }
+      $('net').style.display = 'block';
+    });
+  }
+  $('net').querySelector('button').onclick = () => {
+    $('net').style.display = 'none';
+    proverit().then((ok) => { if (ok) tVyhod = (performance.now() - t0) / 1000; else $('net').style.display = 'block'; });
+  };
+  gotovo.then(() => {
+    t0 = performance.now();
+    if (window.Capacitor && Capacitor.Plugins.SplashScreen) Capacitor.Plugins.SplashScreen.hide({ fadeOutDuration: 0 });
+    zapusk();
+    (function shag() {
+      const t = tiho ? 3 : (performance.now() - t0) / 1000;  // без движения — сразу итоговый кадр
+      const zakryto = kadr(t, tiho ? Math.min(tVyhod, t) : tVyhod);
+      if (zakryto && !ushli) { ushli = true; location.replace(ADRES); return; }
+      requestAnimationFrame(shag);
+    })();
+  });
+}
+</script>
 </body>
 </html>

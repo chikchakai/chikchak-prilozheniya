@@ -2,14 +2,14 @@
   "appId": "hincaly.city.russia",
   "appName": "Хинкальная",
   "webDir": "www",
-  "backgroundColor": "#FFF7EC",
+  "backgroundColor": "#FFEFD6",
   "appendUserAgent": "ChikChakApp",
   "server": {
-    "url": "https://hinkali.chikchak.ai/",
     "errorPath": "oshibka.html",
-    "allowNavigation": ["*"]
+    "allowNavigation": ["hinkali.chikchak.ai", "client.chikchak.ai", "hinkali.city", "*"]
   },
   "plugins": {
-    "SystemBars": { "insetsHandling": "css", "initialViewportFitValueHint": "cover" }
+    "SystemBars": { "insetsHandling": "css", "initialViewportFitValueHint": "cover" },
+    "SplashScreen": { "launchAutoHide": false, "backgroundColor": "#231A14", "showSpinner": false }
   }
 }

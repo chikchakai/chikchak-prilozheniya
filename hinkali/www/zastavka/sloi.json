@@ -1,0 +1,27 @@
+{
+ "okno": [
+  30,
+  100,
+  970,
+  850
+ ],
+ "mashtab": 1.4,
+ "razmer": [
+  1316,
+  1050
+ ],
+ "city": [
+  212,
+  130
+ ],
+ "blyuda": [
+  "megrel",
+  "shashlyk",
+  "harcho",
+  "adzhar",
+  "tarhun",
+  "phali",
+  "odzhahuri",
+  "hinkali"
+ ]
+}
