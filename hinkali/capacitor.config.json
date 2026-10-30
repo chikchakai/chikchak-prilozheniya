@@ -1,0 +1,15 @@
+{
+  "appId": "hincaly.city.russia",
+  "appName": "Хинкальная",
+  "webDir": "www",
+  "backgroundColor": "#FFF7EC",
+  "appendUserAgent": "ChikChakApp",
+  "server": {
+    "url": "https://hinkali.chikchak.ai/",
+    "errorPath": "oshibka.html",
+    "allowNavigation": ["*"]
+  },
+  "plugins": {
+    "SystemBars": { "insetsHandling": "css", "initialViewportFitValueHint": "cover" }
+  }
+}

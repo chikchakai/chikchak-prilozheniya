@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Хинкальная</string>
+    <string name="title_activity_main">Хинкальная</string>
+    <string name="package_name">hincaly.city.russia</string>
+    <string name="custom_url_scheme">hincaly.city.russia</string>
+</resources>
